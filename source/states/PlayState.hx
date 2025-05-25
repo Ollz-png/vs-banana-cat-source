@@ -438,7 +438,7 @@ class PlayState extends MusicBeatState
 
 		boyfriend = new Character(0, 0, playerCharacterName, true);
 
-		playerCharacterName = null // Null it out so we dont accidently use the same character
+		playerCharacterName = null; // Null it out so we dont accidently use the same character
 
 		startCharacterPos(boyfriend);
 		boyfriendGroup.add(boyfriend);
