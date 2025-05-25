@@ -71,6 +71,12 @@ import crowplexus.hscript.Printer;
  * "function eventEarlyTrigger" - Used for making your event start a few MILLISECONDS earlier
  * "function triggerEvent" - Called when the song hits your event's timestamp, this is probably what you were looking for
 **/
+
+typedef RatingInfo = {
+  var name:String;
+  var color:Int;
+}
+
 class PlayState extends MusicBeatState
 {
 	public static var STRUM_X = 42;
@@ -85,9 +91,18 @@ class PlayState extends MusicBeatState
 		['peak', 0.7], //69%
 		['improvement', 0.8], //From 70% to 79%
 		['acceptable', 0.9], //From 80% to 89%
-		['coolio', 1], //From 90% to 99%
-		['PERFECT', 1] //The value on this one isn't used actually, since Perfect is always "1"
+		['coolio', 0.99], //From 90% to 99%
+		['PERFECT', 1] //The value on this one IS used actually, since Perfect is always "1"
 	];
+
+	public static var ratingInfoMap:Map<String, RatingInfo> = [
+	    "perfect" => { name: "Perfect", color: 0xFF00FFFF }, // cyan
+	    "sick"    => { name: "Sick",    color: 0xFF00FF00 }, // green
+	    "good"    => { name: "Good",    color: 0xFFFFFF00 }, // yellow
+	    "bad"     => { name: "Bad",     color: 0xFFFFA500 }, // orange
+	    "shit"    => { name: "Shit",    color: 0xFFFF0000 }  // red
+	];
+
 
 	//event variables
 	private var isCameraOnForcedPos:Bool = false;
@@ -1178,11 +1193,12 @@ class PlayState extends MusicBeatState
 	}
 
 	public dynamic function fullComboFunction()
-	{
-		var sicks:Int = ratingsData[0].hits;
-		var goods:Int = ratingsData[1].hits;
-		var bads:Int = ratingsData[2].hits;
-		var shits:Int = ratingsData[3].hits;
+	{	
+		var perfects:Int = ratingsData[0].hits;
+		var sicks:Int = ratingsData[1].hits;
+		var goods:Int = ratingsData[2].hits;
+		var bads:Int = ratingsData[3].hits;
+		var shits:Int = ratingsData[4].hits;
 
 		ratingFC = "";
 		if(songMisses == 0)
@@ -1190,6 +1206,7 @@ class PlayState extends MusicBeatState
 			if (bads > 0 || shits > 0) ratingFC = 'FC';
 			else if (goods > 0) ratingFC = 'GFC';
 			else if (sicks > 0) ratingFC = 'SFC';
+			else if (perfects > 0) ratingFC = 'PFC';
 		}
 		else {
 			if (songMisses < 10) ratingFC = 'SDCB';
@@ -2571,145 +2588,87 @@ class PlayState extends MusicBeatState
 			Paths.image(uiFolder + 'num' + i + uiPostfix);
 	}
 
-	private function popUpScore(note:Note = null):Void
-	{
-		var noteDiff:Float = Math.abs(note.strumTime - Conductor.songPosition + ClientPrefs.data.ratingOffset);
-		vocals.volume = 1;
+	private function popUpScore(note:Note = null):Void {
+	    var noteDiff:Float = Math.abs(note.strumTime - Conductor.songPosition + ClientPrefs.data.ratingOffset);
+	    vocals.volume = 1;
 
-		if (!ClientPrefs.data.comboStacking && comboGroup.members.length > 0)
-		{
-			for (spr in comboGroup)
-			{
-				if(spr == null) continue;
+	    // Clear previous combo texts from comboGroup
+	    if (comboGroup.members.length > 0) {
+	        for (spr in comboGroup) {
+	            if (spr == null) continue;
+	            comboGroup.remove(spr);
+	            spr.destroy();
+	        }
+	    }
 
-				comboGroup.remove(spr);
-				spr.destroy();
-			}
-		}
+	    // Get rating based on timing accuracy
+	    var daRating:Rating = Conductor.judgeNote(ratingsData, noteDiff / playbackRate);
 
-		var placement:Float = FlxG.width * 0.35;
-		var rating:FlxSprite = new FlxSprite();
-		var score:Int = 350;
+	    totalNotesHit += daRating.ratingMod;
+	    note.ratingMod = daRating.ratingMod;
+	    if (!note.ratingDisabled) daRating.hits++;
+	    note.rating = daRating.name;
+	    var score:Int = daRating.score;
 
-		//tryna do MS based judgment due to popular demand
-		var daRating:Rating = Conductor.judgeNote(ratingsData, noteDiff / playbackRate);
+	    if (daRating.noteSplash && !note.noteSplashData.disabled && !cpuControlled)
+	        spawnNoteSplashOnNote(note);
 
-		totalNotesHit += daRating.ratingMod;
-		note.ratingMod = daRating.ratingMod;
-		if(!note.ratingDisabled) daRating.hits++;
-		note.rating = daRating.name;
-		score = daRating.score;
+	    songScore += score;
+	    if (!note.ratingDisabled) {
+	        songHits++;
+	        totalPlayed++;
+	        RecalculateRating(false);
+	    }
 
-		if(daRating.noteSplash && !note.noteSplashData.disabled && !cpuControlled)
-			spawnNoteSplashOnNote(note);
+	    if (!cpuControlled) {
+	        // Get rating info (name + color) or fallback if missing
+	        var ratingData = ratingInfoMap.get(daRating.name);
+	        if (ratingData == null) {
+	            ratingData = { name: "Unknown", color: FlxColor.WHITE };
+	        }
 
-		songScore += score;
-		if(!note.ratingDisabled)
-		{
-			songHits++;
-			totalPlayed++;
-			RecalculateRating(false);
-		}
+	        // Combine rating name and combo with newline for stacking
+	        var combinedText:String = ratingData.name + "\nx" + Std.string(combo);
 
-		var uiFolder:String = "";
-		var antialias:Bool = ClientPrefs.data.antialiasing;
-		if (stageUI != "normal")
-		{
-			uiFolder = uiPrefix + "UI/";
-			antialias = !isPixelStage;
-		}
-		if(!cpuControlled) {
-		rating.loadGraphic(Paths.image(uiFolder + daRating.image + uiPostfix));
-		rating.screenCenter();
-		rating.x = placement - 40;
-		rating.y -= 60;
-		rating.acceleration.y = 550 * playbackRate * playbackRate;
-		rating.velocity.y -= FlxG.random.int(140, 175) * playbackRate;
-		rating.velocity.x -= FlxG.random.int(0, 10) * playbackRate;
-		rating.visible = (!ClientPrefs.data.hideHud && showRating);
-		rating.x += ClientPrefs.data.comboOffset[0];
-		rating.y -= ClientPrefs.data.comboOffset[1];
-		rating.antialiasing = antialias;
+	        // Create text object with your VCR font and outline
+	        var ratingComboText:FlxText = new FlxText(0, 0, FlxG.width / 2, combinedText);
+	        ratingComboText.setFormat(
+	            Paths.font("vcr.ttf"),
+	            64,
+	            ratingData.color,
+	            "center",
+	            FlxTextBorderStyle.OUTLINE,
+	            FlxColor.BLACK
+	        );
+	        ratingComboText.borderSize = 2;
 
-		var comboSpr:FlxSprite = new FlxSprite().loadGraphic(Paths.image(uiFolder + 'combo' + uiPostfix));
-		comboSpr.screenCenter();
-		comboSpr.x = placement;
-		comboSpr.acceleration.y = FlxG.random.int(200, 300) * playbackRate * playbackRate;
-		comboSpr.velocity.y -= FlxG.random.int(140, 160) * playbackRate;
-		comboSpr.visible = (!ClientPrefs.data.hideHud && showCombo);
-		comboSpr.x += ClientPrefs.data.comboOffset[0];
-		comboSpr.y -= ClientPrefs.data.comboOffset[1];
-		comboSpr.antialiasing = antialias;
-		comboSpr.y += 60;
-		comboSpr.velocity.x += FlxG.random.int(1, 10) * playbackRate;
-		comboGroup.add(rating);
+	        // Center on screen
+	        ratingComboText.screenCenter();
 
-		if (!PlayState.isPixelStage)
-		{
-			rating.setGraphicSize(Std.int(rating.width * 0.7));
-			comboSpr.setGraphicSize(Std.int(comboSpr.width * 0.7));
-		}
-		else
-		{
-			rating.setGraphicSize(Std.int(rating.width * daPixelZoom * 0.85));
-			comboSpr.setGraphicSize(Std.int(comboSpr.width * daPixelZoom * 0.85));
-		}
+	        // Start bigger (for pop-in)
+	        ratingComboText.scale.set(1.3, 1.3);
+	        ratingComboText.alpha = 1;
 
-		comboSpr.updateHitbox();
-		rating.updateHitbox();
+	        ratingComboText.antialiasing = ClientPrefs.data.antialiasing;
+	        ratingComboText.visible = (!ClientPrefs.data.hideHud && (showRating || showComboNum));
 
-		var daLoop:Int = 0;
-		var xThing:Float = 0;
-		if (showCombo)
-			comboGroup.add(comboSpr);
+	        comboGroup.add(ratingComboText);
 
-		var separatedScore:String = Std.string(combo).lpad('0', 3);
-		for (i in 0...separatedScore.length)
-		{
-			var numScore:FlxSprite = new FlxSprite().loadGraphic(Paths.image(uiFolder + 'num' + Std.parseInt(separatedScore.charAt(i)) + uiPostfix));
-			numScore.screenCenter();
-			numScore.x = placement + (43 * daLoop) - 90 + ClientPrefs.data.comboOffset[2];
-			numScore.y += 80 - ClientPrefs.data.comboOffset[3];
-
-			if (!PlayState.isPixelStage) numScore.setGraphicSize(Std.int(numScore.width * 0.5));
-			else numScore.setGraphicSize(Std.int(numScore.width * daPixelZoom));
-			numScore.updateHitbox();
-
-			numScore.acceleration.y = FlxG.random.int(200, 300) * playbackRate * playbackRate;
-			numScore.velocity.y -= FlxG.random.int(140, 160) * playbackRate;
-			numScore.velocity.x = FlxG.random.float(-5, 5) * playbackRate;
-			numScore.visible = !ClientPrefs.data.hideHud;
-			numScore.antialiasing = antialias;
-
-			//if (combo >= 10 || combo == 0)
-			if(showComboNum)
-				comboGroup.add(numScore);
-
-			FlxTween.tween(numScore, {alpha: 0}, 0.2 / playbackRate, {
-				onComplete: function(tween:FlxTween)
-				{
-					numScore.destroy();
-				},
-				startDelay: Conductor.crochet * 0.002 / playbackRate
-			});
-
-			daLoop++;
-			if(numScore.x > xThing) xThing = numScore.x;
-		}
-		comboSpr.x = xThing + 50;
-		FlxTween.tween(rating, {alpha: 0}, 0.2 / playbackRate, {
-			startDelay: Conductor.crochet * 0.001 / playbackRate
-		});
-
-		FlxTween.tween(comboSpr, {alpha: 0}, 0.2 / playbackRate, {
-			onComplete: function(tween:FlxTween)
-			{
-				comboSpr.destroy();
-				rating.destroy();
-			},
-			startDelay: Conductor.crochet * 0.002 / playbackRate
-		});
-	}
+	        // Tween scale down to normal size with expo ease
+	        FlxTween.tween(ratingComboText.scale, {x: 1, y: 1}, 60 / Conductor.bpm, {
+	            ease: FlxEase.expoOut,
+	            onComplete: function(tween) {
+	                // After pop-in, fade out smoothly
+	                FlxTween.tween(ratingComboText, {alpha: 0}, 60 / Conductor.bpm, {
+	                    startDelay: 60 / Conductor.bpm,
+	                    ease: FlxEase.quadIn,
+	                    onComplete: function(t) {
+	                        ratingComboText.kill(); // Remove after fade out
+	                    }
+	                });
+	            }
+	        });
+	    }
 	}
 
 	public var strumsBlocked:Array<Bool> = [];

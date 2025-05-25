@@ -28,25 +28,42 @@ class Rating
 
 	public static function loadDefault():Array<Rating>
 	{
-		var ratingsData:Array<Rating> = [new Rating('sick')]; //highest rating goes first
+var ratingsData:Array<Rating> = [];
+	// Add perfect rating first (highest)
+	var perfectRating:Rating = new Rating('perfect');
+	perfectRating.ratingMod = 1;     // Highest modifier
+	perfectRating.score = 400;       // You can choose a score higher than 'sick'
+	perfectRating.noteSplash = true; // Assuming perfect has a note splash effect
+	ratingsData.push(perfectRating);
 
-		var rating:Rating = new Rating('good');
-		rating.ratingMod = 0.67;
-		rating.score = 200;
-		rating.noteSplash = false;
-		ratingsData.push(rating);
+	// Now add sick rating
+	var sickRating:Rating = new Rating('sick');
+	sickRating.ratingMod = 0.85;
+	sickRating.score = 350;
+	sickRating.noteSplash = true;
+	ratingsData.push(sickRating);
 
-		var rating:Rating = new Rating('bad');
-		rating.ratingMod = 0.34;
-		rating.score = 100;
-		rating.noteSplash = false;
-		ratingsData.push(rating);
+	// Then good
+	var goodRating:Rating = new Rating('good');
+	goodRating.ratingMod = 0.67;
+	goodRating.score = 200;
+	goodRating.noteSplash = false;
+	ratingsData.push(goodRating);
 
-		var rating:Rating = new Rating('shit');
-		rating.ratingMod = 0;
-		rating.score = 50;
-		rating.noteSplash = false;
-		ratingsData.push(rating);
-		return ratingsData;
+	// Then bad
+	var badRating:Rating = new Rating('bad');
+	badRating.ratingMod = 0.34;
+	badRating.score = 100;
+	badRating.noteSplash = false;
+	ratingsData.push(badRating);
+
+	// Then shit
+	var shitRating:Rating = new Rating('shit');
+	shitRating.ratingMod = 0;
+	shitRating.score = 50;
+	shitRating.noteSplash = false;
+	ratingsData.push(shitRating);
+	
+	return ratingsData;
 	}
 }

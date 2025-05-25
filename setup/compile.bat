@@ -1,1 +1,3 @@
-lime test windows -j6 -verbose
+@echo off
+echo Compiling, please wait...
+lime test windows -j6

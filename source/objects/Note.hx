@@ -124,7 +124,16 @@ class Note extends FlxSprite
 	public var hitHealth:Float = 0.02;
 	public var missHealth:Float = 0.1;
 	public var rating:String = 'unknown';
-	public var ratingMod:Float = 0; //9 = unknown, 0.25 = shit, 0.5 = bad, 0.75 = good, 1 = sick
+	public var ratingMod:Float = 0;
+
+	// ratingMod scale:
+	// 1.0 = perfect
+	// 0.9 = sick
+	// 0.75 = good
+	// 0.5 = bad
+	// 0.25 = shit
+	// 0 = unknown or no rating
+
 	public var ratingDisabled:Bool = false;
 
 	public var texture(default, set):String = null;
