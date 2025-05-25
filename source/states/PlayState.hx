@@ -170,6 +170,8 @@ class PlayState extends MusicBeatState
 	public var gf:Character = null;
 	public var boyfriend:Character = null;
 
+	public static var playerCharacterName:String;
+
 	public var notes:FlxTypedGroup<Note>;
 	public var unspawnNotes:Array<Note> = [];
 	public var eventNotes:Array<EventNote> = [];
@@ -430,7 +432,12 @@ class PlayState extends MusicBeatState
 		startCharacterPos(dad, true);
 		dadGroup.add(dad);
 
-		boyfriend = new Character(0, 0, SONG.player1, true);
+		if (playerCharacterName == null) {
+   			playerCharacterName = SONG.player1;  // now SONG.player1 is available
+		}
+
+		boyfriend = new Character(0, 0, playerCharacterName, true);
+		trace(SONG.player1);
 		startCharacterPos(boyfriend);
 		boyfriendGroup.add(boyfriend);
 		
