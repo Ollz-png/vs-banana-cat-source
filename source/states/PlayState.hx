@@ -2603,7 +2603,7 @@ class PlayState extends MusicBeatState
 
 	    // Clear previous combo texts from comboGroup
 	    if (comboGroup.members.length > 0) {
-	        for (spr in comboGroup) {
+	        for (spr in comboGroup.members) {
 	            if (spr == null) continue;
 	            comboGroup.remove(spr);
 	            spr.destroy();
@@ -2612,14 +2612,13 @@ class PlayState extends MusicBeatState
 
 	    // Get rating based on timing accuracy
 	    var daRating:Rating = Conductor.judgeNote(ratingsData, noteDiff / playbackRate);
-
 	    totalNotesHit += daRating.ratingMod;
 	    note.ratingMod = daRating.ratingMod;
 	    if (!note.ratingDisabled) daRating.hits++;
 	    note.rating = daRating.name;
 	    var score:Int = daRating.score;
 
-	    if (daRating.noteSplash && !note.noteSplashData.disabled && !cpuControlled)
+	    if (daRating.noteSplash && !note.noteSplashData.disabled)
 	        spawnNoteSplashOnNote(note);
 
 	    songScore += score;
@@ -2629,56 +2628,53 @@ class PlayState extends MusicBeatState
 	        RecalculateRating(false);
 	    }
 
-	    if (!cpuControlled) {
-	        // Get rating info (name + color) or fallback if missing
-	        var ratingData = ratingInfoMap.get(daRating.name);
-	        if (ratingData == null) {
-	            ratingData = { name: "Unknown", color: FlxColor.WHITE };
-	        }
-
-	        // Combine rating name and combo with newline for stacking
-	        var combinedText:String = ratingData.name + "\nx" + Std.string(combo);
-
-	        // Create text object with your VCR font and outline
-	        var ratingComboText:FlxText = new FlxText(0, 0, FlxG.width / 2, combinedText);
-	        ratingComboText.setFormat(
-	            Paths.font("vcr.ttf"),
-	            64,
-	            ratingData.color,
-	            "center",
-	            FlxTextBorderStyle.OUTLINE,
-	            FlxColor.BLACK
-	        );
-	        ratingComboText.borderSize = 2;
-
-	        // Center on screen
-	        ratingComboText.screenCenter();
-
-	        // Start bigger (for pop-in)
-	        ratingComboText.scale.set(1.3, 1.3);
-	        ratingComboText.alpha = 1;
-
-	        ratingComboText.antialiasing = ClientPrefs.data.antialiasing;
-	        ratingComboText.visible = (!ClientPrefs.data.hideHud && (showRating || showComboNum));
-
-	        comboGroup.add(ratingComboText);
-
-	        // Tween scale down to normal size with expo ease
-	        FlxTween.tween(ratingComboText.scale, {x: 1, y: 1}, 60 / Conductor.bpm, {
-	            ease: FlxEase.expoOut,
-	            onComplete: function(tween) {
-	                // After pop-in, fade out smoothly
-	                FlxTween.tween(ratingComboText, {alpha: 0}, 60 / Conductor.bpm, {
-	                    startDelay: 60 / Conductor.bpm,
-	                    ease: FlxEase.quadIn,
-	                    onComplete: function(t) {
-	                        ratingComboText.kill(); // Remove after fade out
-	                    }
-	                });
-	            }
-	        });
+	    // Get rating info (name + color) or fallback if missing
+	    var ratingData = ratingInfoMap.get(daRating.name);
+	    if (ratingData == null) {
+	        ratingData = { name: "Unknown", color: FlxColor.WHITE };
 	    }
+
+	    // Combine rating name and combo with newline for stacking
+	    var combinedText:String = ratingData.name + "\nx" + Std.string(combo);
+
+	    // Create text object with your VCR font and outline
+	    var ratingComboText:FlxText = new FlxText(0, 0, FlxG.width / 2, combinedText);
+	    ratingComboText.setFormat(
+	        Paths.font("vcr.ttf"),
+	        64,
+	        ratingData.color,
+	        "center",
+	        FlxTextBorderStyle.OUTLINE,
+	        FlxColor.BLACK
+	    );
+	    ratingComboText.borderSize = 2;
+
+	    // Center on screen
+	    ratingComboText.screenCenter();
+
+	    // Start bigger (for pop-in effect)
+	    ratingComboText.scale.set(1.3, 1.3);
+	    ratingComboText.alpha = 1;
+	    ratingComboText.antialiasing = ClientPrefs.data.antialiasing;
+	    ratingComboText.visible = (!ClientPrefs.data.hideHud && (showRating || showComboNum));
+	    comboGroup.add(ratingComboText);
+
+	    // Tween scale down to normal size with expo ease
+	    FlxTween.tween(ratingComboText.scale, { x: 1, y: 1 }, 60 / Conductor.bpm, {
+	        ease: FlxEase.expoOut,
+	        onComplete: function(tween) {
+	            // After pop-in, fade out smoothly
+	            FlxTween.tween(ratingComboText, { alpha: 0 }, 60 / Conductor.bpm, {
+	                startDelay: 60 / Conductor.bpm,
+	                ease: FlxEase.quadIn,
+	                onComplete: function(t) {
+	                    ratingComboText.kill(); // Remove after fade out
+	                }
+	            });
+	        }
+	    });
 	}
+
 
 	public var strumsBlocked:Array<Bool> = [];
 	private function onKeyPress(event:KeyboardEvent):Void
