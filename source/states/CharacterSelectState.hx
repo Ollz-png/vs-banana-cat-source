@@ -30,7 +30,14 @@ class CharacterSelectState extends FlxState {
             forms: [
                 { name: "bf", displayName: "Default" },
                 { name: "bofriend", displayName: "Bofriend" }
-            ] 
+            ]
+        },
+            { 
+            name: "foolish-cat", 
+            displayName: "Foolish Cat", 
+            forms: [
+                { name: "foolish-cat", displayName: "Foolish Cat" }
+            ]
         }
     ];
 
