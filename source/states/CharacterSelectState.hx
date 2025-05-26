@@ -14,6 +14,7 @@ class CharacterSelectState extends FlxState {
     private var currentFormIndex:Int = 0;
 
     private var displayText:FlxText;
+    private var instructions:FlxText;
     private var previewCharacter:Character; // Use Character instead of FlxSprite
 
     private var selected:Bool = false;
@@ -36,11 +37,23 @@ class CharacterSelectState extends FlxState {
     override public function create():Void {
         super.create();
 
+        var bg = new FlxSprite();
+        bg.loadGraphic(Paths.image("charSelect/background")); // no .png needed
+        bg.updateHitbox(); // update collision box after resizing
+        bg.screenCenter();
+        add(bg);
+
         FlxG.sound.playMusic(Paths.music("characterSelect"), 1, true);
 
         displayText = new FlxText(0, 10, FlxG.width, "", 32);
-        displayText.setFormat(null, 24, 0xFFFFFF, "center");
+        displayText.setFormat(Paths.font("vcr.ttf"), 24, 0xFFFFFF, "center");
+        displayText.setBorderStyle(FlxTextBorderStyle.OUTLINE, 0xFF000000, 2); // Black outline with 2px thickness
         add(displayText);
+
+        instructions = new FlxText(0, FlxG.height - 74, FlxG.width, "", 32);
+        instructions.setFormat(Paths.font("vcr.ttf"), 24, 0xFFFFFF, "center");
+        instructions.setBorderStyle(FlxTextBorderStyle.OUTLINE, 0xFF000000, 2); // Black outline with 2px thickness
+        add(instructions);
 
         switchTimer = new FlxTimer();
 
@@ -92,7 +105,11 @@ class CharacterSelectState extends FlxState {
                 FlxG.sound.music.stop();
                 FlxG.sound.playMusic(Paths.music("gameOverEnd"), 1, false);
 
-                previewCharacter.animation.play("hey");
+                if (previewCharacter.animation.exists("hey")) {
+                    previewCharacter.animation.play("hey");
+                } else {
+                    previewCharacter.animation.play("singUP");
+                }
 
                 switchTimer.start(2);
                 switchTimer.onComplete = function(timer:FlxTimer) {
@@ -110,6 +127,10 @@ class CharacterSelectState extends FlxState {
         var charData = characters[currentCharacterIndex];
         var formData = charData.forms[currentFormIndex];
         displayText.text = 'Character: ' + charData.displayName + '\nForm: ' + formData.displayName;
+        instructions.text = 
+            "← / → : Change Character\n" +
+            "↑ / ↓ : Change Form";
+
 
         updatePreviewCharacter();
     }
